@@ -8,6 +8,10 @@ import { getLoggedInUser } from '@/lib/actions/user.actions';
 const Home = async ({ searchParams: { id, page } }: SearchParamProps) => {
   const currentPage = Number(page as string) || 1;
   const loggedIn = await getLoggedInUser();
+  if (!loggedIn) {
+    // Redirect to sign-in or show a message
+    return <div className="flex-center h-full w-full text-lg font-semibold">Please sign in to view your dashboard.</div>;
+  }
   const accounts = await getAccounts({ 
     userId: loggedIn.$id 
   })

@@ -1,61 +1,50 @@
-"use server";
+'use server';
 
-import { ID, Query } from "node-appwrite";
-import { createAdminClient } from "../appwrite";
-import { parseStringify } from "../utils";
-
-const {
-  APPWRITE_DATABASE_ID: DATABASE_ID,
-  APPWRITE_TRANSACTION_COLLECTION_ID: TRANSACTION_COLLECTION_ID,
-} = process.env;
+import { createAdminClient } from '../supabase';
+import { parseStringify } from '../utils';
 
 export const createTransaction = async (transaction: CreateTransactionProps) => {
   try {
-    const { database } = await createAdminClient();
+    const client = await createAdminClient();
 
-    const newTransaction = await database.createDocument(
-      DATABASE_ID!,
-      TRANSACTION_COLLECTION_ID!,
-      ID.unique(),
-      {
-        channel: 'online',
-        category: 'Transfer',
-        ...transaction
-      }
-    )
+    const { data, error } = await client
+      .from('transactions')
+      .insert([
+        {
+          channel: 'online',
+          category: 'Transfer',
+          ...transaction,
+        },
+      ])
+      .select()
+      .single();
 
-    return parseStringify(newTransaction);
+    if (error) throw error;
+    return parseStringify(data);
   } catch (error) {
     console.log(error);
   }
-}
+};
 
-export const getTransactionsByBankId = async ({bankId}: getTransactionsByBankIdProps) => {
+export const getTransactionsByBankId = async ({ bankId }: getTransactionsByBankIdProps) => {
   try {
-    const { database } = await createAdminClient();
+    const client = await createAdminClient();
 
-    const senderTransactions = await database.listDocuments(
-      DATABASE_ID!,
-      TRANSACTION_COLLECTION_ID!,
-      [Query.equal('senderBankId', bankId)],
-    )
+    const [senderTransactions, receiverTransactions] = await Promise.all([
+      client.from('transactions').select('*').eq('sender_bank_id', bankId),
+      client.from('transactions').select('*').eq('receiver_bank_id', bankId),
+    ]);
 
-    const receiverTransactions = await database.listDocuments(
-      DATABASE_ID!,
-      TRANSACTION_COLLECTION_ID!,
-      [Query.equal('receiverBankId', bankId)],
-    );
+    if (senderTransactions.error) throw senderTransactions.error;
+    if (receiverTransactions.error) throw receiverTransactions.error;
 
-    const transactions = {
-      total: senderTransactions.total + receiverTransactions.total,
-      documents: [
-        ...senderTransactions.documents, 
-        ...receiverTransactions.documents,
-      ]
-    }
+    const transactions = [
+      ...(senderTransactions.data || []),
+      ...(receiverTransactions.data || []),
+    ];
 
     return parseStringify(transactions);
   } catch (error) {
     console.log(error);
   }
-}
+};
