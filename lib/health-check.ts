@@ -261,7 +261,7 @@ export async function formatHealthCheckOutput(result: HealthCheckResult): Promis
     `│ Response Time: ${result.plaid.responseTime}ms`,
     result.plaid.error ? `│ Error: ${result.plaid.error}` : '',
     '└───────────────────────────────────────────────────────────┘',
-    '\n┌─ DWOLLA ───────────��──────────────────────────────────────┐',
+    '\n┌─ DWOLLA ──────────────────────────────────────────────────┐',
     `│ Status: ${result.dwolla.connected ? '✅ CONNECTED' : '❌ DISCONNECTED'}`,
     `│ Details: ${result.dwolla.status}`,
     `│ Response Time: ${result.dwolla.responseTime}ms`,
@@ -278,7 +278,7 @@ export async function formatHealthCheckOutput(result: HealthCheckResult): Promis
  */
 export async function logHealthCheck(): Promise<void> {
   const result = await runHealthCheck();
-  const formatted = formatHealthCheckOutput(result);
+  const formatted = await formatHealthCheckOutput(result);
   console.log(formatted);
   return;
 }
