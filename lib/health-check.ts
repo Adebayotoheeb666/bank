@@ -37,11 +37,11 @@ async function checkDatabase(): Promise<HealthCheckResult['database']> {
   const startTime = Date.now();
   try {
     const client = await createAdminClient();
-    
-    // Simple ping query to verify connection
+
+    // Simple ping query to verify connection - just select one row
     const { data, error } = await client
       .from('users')
-      .select('COUNT(*)')
+      .select('id')
       .limit(1);
 
     const responseTime = Date.now() - startTime;
@@ -241,7 +241,7 @@ export async function runHealthCheck(): Promise<HealthCheckResult> {
 /**
  * Format health check result for console output
  */
-export function formatHealthCheckOutput(result: HealthCheckResult): string {
+export async function formatHealthCheckOutput(result: HealthCheckResult): Promise<string> {
   const lines = [
     '\n╔════════════════════════════════════════════════════════════╗',
     '║          HEALTH CHECK REPORT                               ║',
@@ -261,7 +261,7 @@ export function formatHealthCheckOutput(result: HealthCheckResult): string {
     `│ Response Time: ${result.plaid.responseTime}ms`,
     result.plaid.error ? `│ Error: ${result.plaid.error}` : '',
     '└───────────────────────────────────────────────────────────┘',
-    '\n┌─ DWOLLA ──────────────────────────────────────────────────┐',
+    '\n���─ DWOLLA ──────────────────────────────────────────────────┐',
     `│ Status: ${result.dwolla.connected ? '✅ CONNECTED' : '❌ DISCONNECTED'}`,
     `│ Details: ${result.dwolla.status}`,
     `│ Response Time: ${result.dwolla.responseTime}ms`,
@@ -278,7 +278,7 @@ export function formatHealthCheckOutput(result: HealthCheckResult): string {
  */
 export async function logHealthCheck(): Promise<void> {
   const result = await runHealthCheck();
-  const formatted = formatHealthCheckOutput(result);
+  const formatted = await formatHealthCheckOutput(result);
   console.log(formatted);
   return;
 }

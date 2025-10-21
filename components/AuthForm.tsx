@@ -37,7 +37,15 @@ const AuthForm = ({ type }: { type: string }) => {
       resolver: zodResolver(formSchema),
       defaultValues: {
         email: "",
-        password: ''
+        password: '',
+        firstName: "",
+        lastName: "",
+        address1: "",
+        city: "",
+        state: "",
+        postalCode: "",
+        dateOfBirth: "",
+        ssn: ""
       },
     })
    
@@ -46,8 +54,6 @@ const AuthForm = ({ type }: { type: string }) => {
       setIsLoading(true);
 
       try {
-        // Sign up with Appwrite & create plaid token
-        
         if(type === 'sign-up') {
           const userData = {
             firstName: data.firstName!,
@@ -62,21 +68,36 @@ const AuthForm = ({ type }: { type: string }) => {
             password: data.password
           }
 
-          const newUser = await signUp(userData);
+          const result = await signUp(userData);
 
-          setUser(newUser);
+          if (!result || !result.success) {
+            console.error('Sign up failed:', result?.error || 'Unknown error');
+            alert(`Sign up failed: ${result?.error || 'Unknown error'}`);
+            return;
+          }
+
+          setUser(result);
         }
 
         if(type === 'sign-in') {
-          const response = await signIn({
+          const result = await signIn({
             email: data.email,
             password: data.password,
           })
 
-          if(response) router.push('/')
+          if(result && result.success) {
+            router.push('/')
+          } else {
+            console.error('Sign in failed:', result?.error || 'Invalid credentials');
+            alert(`Sign in failed: ${result?.error || 'Invalid credentials'}`);
+          }
         }
       } catch (error) {
-        console.log(error);
+        console.error('Auth error:', error);
+        if (error instanceof Error) {
+          console.error('Error message:', error.message);
+          alert(`Error: ${error.message}`);
+        }
       } finally {
         setIsLoading(false);
       }
