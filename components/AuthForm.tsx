@@ -54,8 +54,6 @@ const AuthForm = ({ type }: { type: string }) => {
       setIsLoading(true);
 
       try {
-        // Sign up with Appwrite & create plaid token
-        
         if(type === 'sign-up') {
           const userData = {
             firstName: data.firstName!,
@@ -72,6 +70,11 @@ const AuthForm = ({ type }: { type: string }) => {
 
           const newUser = await signUp(userData);
 
+          if (!newUser) {
+            console.error('Sign up failed: No user returned');
+            return;
+          }
+
           setUser(newUser);
         }
 
@@ -81,10 +84,17 @@ const AuthForm = ({ type }: { type: string }) => {
             password: data.password,
           })
 
-          if(response) router.push('/')
+          if(response) {
+            router.push('/')
+          } else {
+            console.error('Sign in failed: Invalid credentials or user not found');
+          }
         }
       } catch (error) {
-        console.log(error);
+        console.error('Auth error:', error);
+        if (error instanceof Error) {
+          console.error('Error message:', error.message);
+        }
       } finally {
         setIsLoading(false);
       }
