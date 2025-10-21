@@ -31,7 +31,13 @@ export const signIn = async ({ email, password }: signInProps) => {
       password,
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Sign in error:', error.message);
+      return {
+        error: error.message || 'Invalid email or password',
+        success: false,
+      };
+    }
 
     const cookieStore = cookies();
     cookieStore.set('sb-session', JSON.stringify(data.session), {
@@ -44,13 +50,17 @@ export const signIn = async ({ email, password }: signInProps) => {
 
     const user = await getUserInfo({ userId: data.user.id });
 
-    return parseStringify(user);
+    return {
+      ...parseStringify(user),
+      success: true,
+    };
   } catch (error) {
-    console.error('Sign in error:', error);
-    if (error instanceof Error) {
-      console.error('Error message:', error.message);
-    }
-    throw error;
+    console.error('Unexpected sign in error:', error);
+    const message = error instanceof Error ? error.message : 'An unexpected error occurred';
+    return {
+      error: message,
+      success: false,
+    };
   }
 };
 
