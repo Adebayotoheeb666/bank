@@ -25,7 +25,7 @@ export const getUserInfo = async ({ userId }: getUserInfoProps) => {
 export const signIn = async ({ email, password }: signInProps) => {
   try {
     const client = await createAdminClient();
-    
+
     const { data, error } = await client.auth.signInWithPassword({
       email,
       password,
@@ -46,7 +46,11 @@ export const signIn = async ({ email, password }: signInProps) => {
 
     return parseStringify(user);
   } catch (error) {
-    console.error('Error', error);
+    console.error('Sign in error:', error);
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+    }
+    throw error;
   }
 };
 
