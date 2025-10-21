@@ -68,32 +68,35 @@ const AuthForm = ({ type }: { type: string }) => {
             password: data.password
           }
 
-          const newUser = await signUp(userData);
+          const result = await signUp(userData);
 
-          if (!newUser) {
-            console.error('Sign up failed: No user returned');
+          if (!result || !result.success) {
+            console.error('Sign up failed:', result?.error || 'Unknown error');
+            alert(`Sign up failed: ${result?.error || 'Unknown error'}`);
             return;
           }
 
-          setUser(newUser);
+          setUser(result);
         }
 
         if(type === 'sign-in') {
-          const response = await signIn({
+          const result = await signIn({
             email: data.email,
             password: data.password,
           })
 
-          if(response) {
+          if(result && result.success) {
             router.push('/')
           } else {
-            console.error('Sign in failed: Invalid credentials or user not found');
+            console.error('Sign in failed:', result?.error || 'Invalid credentials');
+            alert(`Sign in failed: ${result?.error || 'Invalid credentials'}`);
           }
         }
       } catch (error) {
         console.error('Auth error:', error);
         if (error instanceof Error) {
           console.error('Error message:', error.message);
+          alert(`Error: ${error.message}`);
         }
       } finally {
         setIsLoading(false);
