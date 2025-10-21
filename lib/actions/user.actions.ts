@@ -66,7 +66,7 @@ export const signUp = async ({ password, ...userData }: SignUpParams) => {
     });
 
     if (authError) throw authError;
-    if (!authData.user) throw new Error('Error creating user');
+    if (!authData.user) throw new Error('Error creating user in authentication');
 
     const dwollaCustomerUrl = await createDwollaCustomer({
       ...userData,
@@ -113,7 +113,11 @@ export const signUp = async ({ password, ...userData }: SignUpParams) => {
 
     return parseStringify(dbData);
   } catch (error) {
-    console.error('Error', error);
+    console.error('Sign up error:', error);
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+    }
+    throw error;
   }
 };
 
