@@ -241,7 +241,7 @@ export async function runHealthCheck(): Promise<HealthCheckResult> {
 /**
  * Format health check result for console output
  */
-export function formatHealthCheckOutput(result: HealthCheckResult): string {
+export async function formatHealthCheckOutput(result: HealthCheckResult): Promise<string> {
   const lines = [
     '\n╔════════════════════════════════════════════════════════════╗',
     '║          HEALTH CHECK REPORT                               ║',
@@ -261,7 +261,7 @@ export function formatHealthCheckOutput(result: HealthCheckResult): string {
     `│ Response Time: ${result.plaid.responseTime}ms`,
     result.plaid.error ? `│ Error: ${result.plaid.error}` : '',
     '└───────────────────────────────────────────────────────────┘',
-    '\n┌─ DWOLLA ──────────────────────────────────────────────────┐',
+    '\n┌─ DWOLLA ───────────��──────────────────────────────────────┐',
     `│ Status: ${result.dwolla.connected ? '✅ CONNECTED' : '❌ DISCONNECTED'}`,
     `│ Details: ${result.dwolla.status}`,
     `│ Response Time: ${result.dwolla.responseTime}ms`,
