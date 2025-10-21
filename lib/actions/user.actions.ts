@@ -69,15 +69,34 @@ export const signUp = async ({ password, ...userData }: SignUpParams) => {
       },
     });
 
-    if (authError) throw authError;
-    if (!authData.user) throw new Error('Error creating user in authentication');
+    if (authError) {
+      console.error('Auth error:', authError.message);
+      return {
+        error: authError.message || 'Failed to create user',
+        success: false,
+      };
+    }
+
+    if (!authData.user) {
+      console.error('No user returned from auth creation');
+      return {
+        error: 'Error creating user in authentication',
+        success: false,
+      };
+    }
 
     const dwollaCustomerUrl = await createDwollaCustomer({
       ...userData,
       type: 'personal',
     });
 
-    if (!dwollaCustomerUrl) throw new Error('Error creating Dwolla customer');
+    if (!dwollaCustomerUrl) {
+      console.error('No Dwolla customer URL returned');
+      return {
+        error: 'Error creating Dwolla customer',
+        success: false,
+      };
+    }
 
     const dwollaCustomerId = extractCustomerIdFromUrl(dwollaCustomerUrl);
 
@@ -98,13 +117,25 @@ export const signUp = async ({ password, ...userData }: SignUpParams) => {
       },
     ]).select().single();
 
-    if (dbError) throw dbError;
+    if (dbError) {
+      console.error('Database error:', dbError.message);
+      return {
+        error: dbError.message || 'Error saving user to database',
+        success: false,
+      };
+    }
 
     const { data: sessionData, error: sessionError } = await client.auth.admin.createSession(
       authData.user.id
     );
 
-    if (sessionError) throw sessionError;
+    if (sessionError) {
+      console.error('Session error:', sessionError.message);
+      return {
+        error: sessionError.message || 'Error creating session',
+        success: false,
+      };
+    }
 
     const cookieStore = cookies();
     cookieStore.set('sb-session', JSON.stringify(sessionData.session), {
@@ -115,13 +146,17 @@ export const signUp = async ({ password, ...userData }: SignUpParams) => {
       maxAge: 60 * 60 * 24 * 7,
     });
 
-    return parseStringify(dbData);
+    return {
+      ...parseStringify(dbData),
+      success: true,
+    };
   } catch (error) {
-    console.error('Sign up error:', error);
-    if (error instanceof Error) {
-      console.error('Error message:', error.message);
-    }
-    throw error;
+    console.error('Unexpected sign up error:', error);
+    const message = error instanceof Error ? error.message : 'An unexpected error occurred';
+    return {
+      error: message,
+      success: false,
+    };
   }
 };
 
