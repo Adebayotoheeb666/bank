@@ -136,7 +136,36 @@ const AuthForm = ({ type }: { type: string }) => {
             </h1>
           </div>
       </header>
-      {user ? (
+      {confirmationPending ? (
+        <div className="flex flex-col gap-6">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+            <h2 className="text-20 font-semibold text-gray-900 mb-2">
+              Confirm Your Email
+            </h2>
+            <p className="text-16 font-normal text-gray-600 mb-4">
+              We've sent a confirmation link to <strong>{confirmationEmail}</strong>
+            </p>
+            <p className="text-14 font-normal text-gray-500">
+              Please click the link in your email to confirm your account and complete your registration.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3">
+            <p className="text-14 font-normal text-gray-600 text-center">
+              Didn't receive the email? Check your spam folder or try signing up again.
+            </p>
+            <Button
+              onClick={() => {
+                setConfirmationPending(false);
+                form.reset();
+              }}
+              variant="outline"
+              className="form-btn"
+            >
+              Back to Sign Up
+            </Button>
+          </div>
+        </div>
+      ) : user ? (
         <div className="flex flex-col gap-4">
           <PlaidLink user={user} variant="primary" />
         </div>
