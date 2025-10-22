@@ -33,6 +33,82 @@ export const signIn = async ({ email, password }: signInProps) => {
 
     if (error) {
       console.error('Sign in error:', error.message);
+
+      if (error.message?.includes('Email not confirmed')) {
+        try {
+          const { data: users, error: listError } = await client.auth.admin.listUsers();
+
+          if (listError || !users) {
+            return {
+              error: error.message || 'Invalid email or password',
+              success: false,
+            };
+          }
+
+          const user = users.users.find(u => u.email === email);
+          if (!user) {
+            return {
+              error: error.message || 'Invalid email or password',
+              success: false,
+            };
+          }
+
+          const { error: updateError } = await client.auth.admin.updateUserById(
+            user.id,
+            { email_confirm: true }
+          );
+
+          if (updateError) {
+            console.error('Error confirming email:', updateError);
+            return {
+              error: error.message || 'Invalid email or password',
+              success: false,
+            };
+          }
+
+          const { data: retryData, error: retryError } = await client.auth.signInWithPassword({
+            email,
+            password,
+          });
+
+          if (retryError) {
+            return {
+              error: retryError.message || 'Invalid email or password',
+              success: false,
+            };
+          }
+
+          if (!retryData.session) {
+            return {
+              error: 'Failed to create session',
+              success: false,
+            };
+          }
+
+          const cookieStore = cookies();
+          cookieStore.set('sb-session', JSON.stringify(retryData.session), {
+            path: '/',
+            httpOnly: true,
+            sameSite: 'strict',
+            secure: true,
+            maxAge: 60 * 60 * 24 * 7,
+          });
+
+          const userInfo = await getUserInfo({ userId: retryData.user.id });
+
+          return {
+            ...parseStringify(userInfo),
+            success: true,
+          };
+        } catch (confirmError) {
+          console.error('Error confirming email:', confirmError);
+          return {
+            error: error.message || 'Invalid email or password',
+            success: false,
+          };
+        }
+      }
+
       return {
         error: error.message || 'Invalid email or password',
         success: false,
