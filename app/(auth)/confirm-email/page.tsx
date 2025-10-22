@@ -42,6 +42,36 @@ const ConfirmEmail = () => {
     confirmEmail();
   }, [searchParams, router]);
 
+  const handleResendEmail = async () => {
+    const email = searchParams.get('email');
+    if (!email) {
+      setMessage('Email address not found. Please try signing up again.');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/auth/resend-confirmation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: decodeURIComponent(email) }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setMessage(`Failed to resend: ${data.error || 'Unknown error'}`);
+        return;
+      }
+
+      setMessage('Confirmation email sent! Check your inbox.');
+    } catch (error) {
+      console.error('Resend error:', error);
+      setMessage('Failed to resend email. Please try again.');
+    }
+  };
+
   return (
     <section className="flex-center size-full max-sm:px-6">
       <div className="auth-form max-w-md">
@@ -73,10 +103,16 @@ const ConfirmEmail = () => {
             <div className="flex flex-col gap-4 w-full">
               <p className="text-center text-red-600">✗ Could not confirm email</p>
               <Button
-                onClick={() => router.push('/sign-up')}
+                onClick={handleResendEmail}
                 className="form-btn"
               >
-                Try Again
+                Resend Confirmation Email
+              </Button>
+              <Button
+                onClick={() => router.push('/sign-up')}
+                variant="outline"
+              >
+                Back to Sign Up
               </Button>
             </div>
           )}
