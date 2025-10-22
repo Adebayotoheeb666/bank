@@ -71,12 +71,18 @@ export const createDwollaCustomer = async (
   } catch (err: any) {
     console.error("Creating a Dwolla Customer Failed: ", err);
 
-    if (err?.body?.message) {
-      throw new Error(err.body.message);
+    if (err?.body?._embedded?.errors && Array.isArray(err.body._embedded.errors)) {
+      const errorMessages = err.body._embedded.errors
+        .map((e: any) => {
+          const field = e.path?.replace('/', '') || 'Unknown field';
+          return `${field}: ${e.message}`;
+        })
+        .join(', ');
+      throw new Error(`Validation error: ${errorMessages}`);
     }
 
-    if (err?.body?._embedded?.errors?.[0]?.message) {
-      throw new Error(err.body._embedded.errors[0].message);
+    if (err?.body?.message) {
+      throw new Error(err.body.message);
     }
 
     throw new Error("Failed to create Dwolla customer. Please check your information and try again.");
