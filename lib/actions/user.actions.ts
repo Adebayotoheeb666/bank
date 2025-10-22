@@ -95,15 +95,25 @@ export const signUp = async ({ password, ...userData }: SignUpParams) => {
       };
     }
 
-    const dwollaCustomerUrl = await createDwollaCustomer({
-      ...userData,
-      type: 'personal',
-    });
+    let dwollaCustomerUrl;
+    try {
+      dwollaCustomerUrl = await createDwollaCustomer({
+        ...userData,
+        type: 'personal',
+      });
+    } catch (dwollaError: any) {
+      const dwollaErrorMessage = dwollaError?.message || 'Failed to create Dwolla customer';
+      console.error('Dwolla error:', dwollaErrorMessage);
+      return {
+        error: dwollaErrorMessage,
+        success: false,
+      };
+    }
 
     if (!dwollaCustomerUrl) {
       console.error('No Dwolla customer URL returned');
       return {
-        error: 'Error creating Dwolla customer',
+        error: 'Failed to create Dwolla customer. Please verify your information (especially SSN format)',
         success: false,
       };
     }
