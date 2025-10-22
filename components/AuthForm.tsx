@@ -80,6 +80,7 @@ const AuthForm = ({ type }: { type: string }) => {
 
           showToast('Account created successfully!', 'success', 3000);
           setUser(result);
+          router.push('/');
         }
 
         if(type === 'sign-in') {

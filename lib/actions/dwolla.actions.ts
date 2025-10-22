@@ -28,7 +28,7 @@ export const createFundingSource = async (
   options: CreateFundingSourceOptions
 ) => {
   try {
-    return await dwollaClient
+    const response = await dwollaClient
       .post(`customers/${options.customerId}/funding-sources`, {
         name: options.fundingSourceName,
         plaidToken: options.plaidToken,
@@ -55,9 +55,48 @@ export const createOnDemandAuthorization = async () => {
       "on-demand-authorizations"
     );
     const authLink = onDemandAuthorization.body._links;
+
+    if (!authLink) {
+      throw new Error("Dwolla did not return authorization links");
+    }
+
     return authLink;
   } catch (err) {
-    console.error("Creating an On Demand Authorization Failed: ", err);
+    const errorMessage = err instanceof Error ? err.message : JSON.stringify(err);
+    console.error("Creating an On Demand Authorization Failed:", {
+      error: errorMessage,
+      timestamp: new Date().toISOString(),
+    });
+    throw new Error(`On-demand authorization failed: ${errorMessage}`);
+  }
+};
+
+export const findDwollaCustomerByEmail = async (email: string) => {
+  try {
+    // Search for existing customer with this email
+    const response = await dwollaClient.get("customers", {
+      email: email,
+    });
+
+    const customers = response.body._embedded?.customers || [];
+
+    if (customers.length > 0) {
+      // Return the first matching customer's URL
+      const customerUrl = customers[0]._links.self.href;
+      console.log(`Found existing Dwolla customer for ${email}: ${customerUrl}`);
+      return customerUrl;
+    }
+
+    return null;
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : JSON.stringify(err);
+    console.error("Finding Dwolla customer failed:", {
+      error: errorMessage,
+      email,
+      timestamp: new Date().toISOString(),
+    });
+    // Don't throw - just return null if search fails
+    return null;
   }
 };
 
@@ -154,3 +193,5 @@ export const addFundingSource = async ({
     throw new Error("Failed to add funding source. Please try again.");
   }
 };
+
+

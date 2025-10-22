@@ -39,6 +39,7 @@ export const signIn = async ({ email, password }: signInProps) => {
       };
     }
 
+
     const cookieStore = cookies();
     cookieStore.set('sb-session', JSON.stringify(data.session), {
       path: '/',
@@ -145,30 +146,10 @@ export const signUp = async ({ password, ...userData }: SignUpParams) => {
       };
     }
 
-    const { data: sessionData, error: sessionError } = await client.auth.admin.createSession(
-      authData.user.id
-    );
-
-    if (sessionError) {
-      console.error('Session error:', sessionError.message);
-      return {
-        error: sessionError.message || 'Error creating session',
-        success: false,
-      };
-    }
-
-    const cookieStore = cookies();
-    cookieStore.set('sb-session', JSON.stringify(sessionData.session), {
-      path: '/',
-      httpOnly: true,
-      sameSite: 'strict',
-      secure: true,
-      maxAge: 60 * 60 * 24 * 7,
-    });
-
     return {
       ...parseStringify(dbData),
       success: true,
+      userId: authData.user.id,
     };
   } catch (error) {
     console.error('Unexpected sign up error:', error);
