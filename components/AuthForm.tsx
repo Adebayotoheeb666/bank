@@ -78,8 +78,8 @@ const AuthForm = ({ type }: { type: string }) => {
             return;
           }
 
-          setConfirmationPending(true);
-          setConfirmationEmail(data.email);
+          setUser(result);
+          router.push('/');
         }
 
         if(type === 'sign-in') {
