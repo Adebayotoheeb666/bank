@@ -28,14 +28,27 @@ export const createFundingSource = async (
   options: CreateFundingSourceOptions
 ) => {
   try {
-    return await dwollaClient
+    const response = await dwollaClient
       .post(`customers/${options.customerId}/funding-sources`, {
         name: options.fundingSourceName,
         plaidToken: options.plaidToken,
-      })
-      .then((res) => res.headers.get("location"));
+      });
+
+    const fundingSourceUrl = response.headers.get("location");
+
+    if (!fundingSourceUrl) {
+      throw new Error("Dwolla did not return a funding source URL");
+    }
+
+    return fundingSourceUrl;
   } catch (err) {
-    console.error("Creating a Funding Source Failed: ", err);
+    const errorMessage = err instanceof Error ? err.message : JSON.stringify(err);
+    console.error("Creating a Funding Source Failed:", {
+      error: errorMessage,
+      customerId: options.customerId,
+      timestamp: new Date().toISOString(),
+    });
+    throw new Error(`Funding source creation failed: ${errorMessage}`);
   }
 };
 
