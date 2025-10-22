@@ -13,43 +13,30 @@ const ConfirmEmail = () => {
 
   useEffect(() => {
     const confirmEmail = async () => {
-      const token = searchParams.get('token');
-      const type = searchParams.get('type');
+      // Check if confirmation was already handled by the callback route
+      const success = searchParams.get('success');
       const email = searchParams.get('email');
 
-      if (!token || type !== 'email') {
-        setStatus('error');
-        setMessage('Invalid confirmation link. Please try signing up again.');
-        return;
-      }
-
-      try {
-        const response = await fetch('/api/auth/confirm', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ token }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          setStatus('error');
-          setMessage(data.error || 'Failed to confirm email. Please try again.');
-          return;
-        }
-
+      if (success === 'true') {
         setStatus('success');
         setMessage('Email confirmed successfully! Redirecting to sign in...');
         setTimeout(() => {
           router.push('/sign-in');
         }, 2000);
-      } catch (error) {
-        setStatus('error');
-        setMessage('An error occurred while confirming your email. Please try again.');
-        console.error('Confirmation error:', error);
+        return;
       }
+
+      // If no success param, check for error
+      const error = searchParams.get('error');
+      if (error) {
+        setStatus('error');
+        setMessage(decodeURIComponent(error) || 'Failed to confirm email. Please try again.');
+        return;
+      }
+
+      // No parameters - this shouldn't happen in normal flow
+      setStatus('error');
+      setMessage('Invalid confirmation link. Please try signing up again.');
     };
 
     confirmEmail();
