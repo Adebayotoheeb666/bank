@@ -22,7 +22,7 @@ import CustomInput from './CustomInput';
 import { authFormSchema } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { getLoggedInUser, signIn, signUp } from '@/lib/actions/user.actions';
+import { signUp } from '@/lib/actions/user.actions';
 import PlaidLink from './PlaidLink';
 import { useToast } from '@/context/ToastContext';
 
@@ -83,13 +83,16 @@ const AuthForm = ({ type }: { type: string }) => {
           router.push('/');
         }
 
-        if(type === 'sign-in') {
-          const result = await signIn({
-            email: data.email,
-            password: data.password,
-          })
+        if (type === 'sign-in') {
+          const res = await fetch('/api/auth/sign-in', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: data.email, password: data.password }),
+          });
+          const result = await res.json().catch(() => ({}));
 
-          if(result && result.success) {
+          if (res.ok && result?.success) {
             showToast('Signed in successfully!', 'success', 2000);
             setTimeout(() => router.push('/'), 500);
           } else {
