@@ -1,11 +1,11 @@
 import HeaderBox from '@/components/HeaderBox'
-import { redirect } from 'next/navigation'
 import { Pagination } from '@/components/Pagination';
 import TransactionsTable from '@/components/TransactionsTable';
 import HeaderBox from '@/components/HeaderBox'
 import { getAccount, getAccounts } from '@/lib/actions/bank.actions';
 import { getLoggedInUser } from '@/lib/actions/user.actions';
 import { formatAmount } from '@/lib/utils';
+import Link from 'next/link'
 import React from 'react'
 
 const TransactionHistory = async ({ searchParams: { id, page }}:SearchParamProps) => {
@@ -13,7 +13,17 @@ const TransactionHistory = async ({ searchParams: { id, page }}:SearchParamProps
   const loggedIn = await getLoggedInUser();
 
   if (!loggedIn) {
-    redirect('/sign-in');
+    return (
+      <section className="flex-center size-full">
+        <div className="text-center">
+          <h2 className="header-2">Please sign in</h2>
+          <p className="mt-2">You need to be signed in to view transactions.</p>
+          <div className="mt-4">
+            <Link href="/sign-in" className="btn">Sign in</Link>
+          </div>
+        </div>
+      </section>
+    );
   }
 
   const accounts = await getAccounts({
