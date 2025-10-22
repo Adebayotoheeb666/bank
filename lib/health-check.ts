@@ -29,55 +29,60 @@ export interface HealthCheckResult {
 }
 
 /**
- * Check Supabase database connection
+ * Check Supabase database connection with timeout
  */
 async function checkDatabase(): Promise<HealthCheckResult['database']> {
   const startTime = Date.now();
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-    const client = await createAdminClient();
-
-    const { data, error } = await client
-      .from('users')
-      .select('id')
-      .limit(1);
-
-    clearTimeout(timeoutId);
-    const responseTime = Date.now() - startTime;
-
-    if (error) {
-      return {
-        connected: false,
-        status: 'DISCONNECTED',
-        error: error.message,
-        responseTime,
-      };
-    }
-
-    return {
-      connected: true,
-      status: 'CONNECTED',
-      responseTime,
-    };
-  } catch (error: any) {
-    const responseTime = Date.now() - startTime;
-    if (error.name === 'AbortError') {
-      return {
+  const timeoutPromise = new Promise<HealthCheckResult['database']>((resolve) => {
+    setTimeout(() => {
+      const responseTime = Date.now() - startTime;
+      resolve({
         connected: false,
         status: 'TIMEOUT',
         error: 'Request timed out after 5 seconds',
         responseTime,
+      });
+    }, 5000);
+  });
+
+  const checkPromise = (async () => {
+    try {
+      const client = await createAdminClient();
+
+      const { data, error } = await client
+        .from('users')
+        .select('id')
+        .limit(1);
+
+      const responseTime = Date.now() - startTime;
+
+      if (error) {
+        return {
+          connected: false,
+          status: 'DISCONNECTED',
+          error: error.message,
+          responseTime,
+        };
+      }
+
+      return {
+        connected: true,
+        status: 'CONNECTED',
+        responseTime,
+      };
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      return {
+        connected: false,
+        status: 'ERROR',
+        error: error?.message || 'Unknown database error',
+        responseTime,
       };
     }
-    return {
-      connected: false,
-      status: 'ERROR',
-      error: error?.message || 'Unknown database error',
-      responseTime,
-    };
-  }
+  })();
+
+  return Promise.race([checkPromise, timeoutPromise]);
 }
 
 /**
@@ -262,7 +267,7 @@ export async function formatHealthCheckOutput(result: HealthCheckResult): Promis
     `│ Response Time: ${result.database.responseTime}ms`,
     result.database.error ? `│ Error: ${result.database.error}` : '',
     '└───────────────────────────────────────────────────────────┘',
-    '\n┌─ PLAID ──────────────────���────────────────────────────────┐',
+    '\n┌─ PLAID ───────────────────────────────────────────────────┐',
     `│ Status: ${result.plaid.connected ? '✅ CONNECTED' : '❌ DISCONNECTED'}`,
     `│ Details: ${result.plaid.status}`,
     `│ Response Time: ${result.plaid.responseTime}ms`,
