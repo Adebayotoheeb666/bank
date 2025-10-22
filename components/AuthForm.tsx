@@ -29,8 +29,6 @@ const AuthForm = ({ type }: { type: string }) => {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [confirmationPending, setConfirmationPending] = useState(false);
-  const [confirmationEmail, setConfirmationEmail] = useState('');
 
   const formSchema = authFormSchema(type);
 
