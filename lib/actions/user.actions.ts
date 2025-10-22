@@ -86,11 +86,12 @@ export const signIn = async ({ email, password }: signInProps) => {
           }
 
           const cookieStore = cookies();
+          const isProd = process.env.NODE_ENV === 'production';
           cookieStore.set('sb-session', JSON.stringify(retryData.session), {
             path: '/',
             httpOnly: true,
-            sameSite: 'none',
-            secure: true,
+            sameSite: isProd ? 'none' : 'lax',
+            secure: isProd,
             maxAge: 60 * 60 * 24 * 7,
           });
 
@@ -117,11 +118,12 @@ export const signIn = async ({ email, password }: signInProps) => {
 
 
     const cookieStore = cookies();
+    const isProd = process.env.NODE_ENV === 'production';
     cookieStore.set('sb-session', JSON.stringify(data.session), {
       path: '/',
       httpOnly: true,
-      sameSite: 'none',
-      secure: true,
+      sameSite: isProd ? 'none' : 'lax',
+      secure: isProd,
       maxAge: 60 * 60 * 24 * 7,
     });
 
