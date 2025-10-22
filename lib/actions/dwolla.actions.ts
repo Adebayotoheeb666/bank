@@ -74,10 +74,48 @@ export const createOnDemandAuthorization = async () => {
   }
 };
 
+export const findDwollaCustomerByEmail = async (email: string) => {
+  try {
+    // Search for existing customer with this email
+    const response = await dwollaClient.get("customers", {
+      email: email,
+    });
+
+    const customers = response.body._embedded?.customers || [];
+
+    if (customers.length > 0) {
+      // Return the first matching customer's URL
+      const customerUrl = customers[0]._links.self.href;
+      console.log(`Found existing Dwolla customer for ${email}: ${customerUrl}`);
+      return customerUrl;
+    }
+
+    return null;
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : JSON.stringify(err);
+    console.error("Finding Dwolla customer failed:", {
+      error: errorMessage,
+      email,
+      timestamp: new Date().toISOString(),
+    });
+    // Don't throw - just return null if search fails
+    return null;
+  }
+};
+
 export const createDwollaCustomer = async (
   newCustomer: NewDwollaCustomerParams
 ) => {
   try {
+    // Check if customer already exists
+    const existingCustomerUrl = await findDwollaCustomerByEmail(newCustomer.email);
+
+    if (existingCustomerUrl) {
+      console.log(`Reusing existing Dwolla customer for ${newCustomer.email}`);
+      return existingCustomerUrl;
+    }
+
+    // Create new customer if doesn't exist
     const response = await dwollaClient.post("customers", newCustomer);
     const customerUrl = response.headers.get("location");
 
@@ -86,6 +124,7 @@ export const createDwollaCustomer = async (
       throw new Error("Dwolla did not return a customer URL");
     }
 
+    console.log(`Created new Dwolla customer for ${newCustomer.email}: ${customerUrl}`);
     return customerUrl;
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : JSON.stringify(err);
