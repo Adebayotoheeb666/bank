@@ -77,6 +77,7 @@ const AuthForm = ({ type }: { type: string }) => {
           }
 
           setUser(result);
+          router.push('/');
         }
 
         if(type === 'sign-in') {

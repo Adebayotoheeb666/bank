@@ -39,6 +39,7 @@ export const signIn = async ({ email, password }: signInProps) => {
       };
     }
 
+
     const cookieStore = cookies();
     cookieStore.set('sb-session', JSON.stringify(data.session), {
       path: '/',
@@ -95,15 +96,17 @@ export const signUp = async ({ password, ...userData }: SignUpParams) => {
       };
     }
 
-    const dwollaCustomerUrl = await createDwollaCustomer({
-      ...userData,
-      type: 'personal',
-    });
-
-    if (!dwollaCustomerUrl) {
-      console.error('No Dwolla customer URL returned');
+    let dwollaCustomerUrl: string;
+    try {
+      dwollaCustomerUrl = await createDwollaCustomer({
+        ...userData,
+        type: 'personal',
+      });
+    } catch (dwollaError) {
+      const errorMessage = dwollaError instanceof Error ? dwollaError.message : 'Unknown Dwolla error';
+      console.error('Dwolla customer creation error:', errorMessage);
       return {
-        error: 'Error creating Dwolla customer',
+        error: errorMessage,
         success: false,
       };
     }
@@ -135,30 +138,10 @@ export const signUp = async ({ password, ...userData }: SignUpParams) => {
       };
     }
 
-    const { data: sessionData, error: sessionError } = await client.auth.admin.createSession(
-      authData.user.id
-    );
-
-    if (sessionError) {
-      console.error('Session error:', sessionError.message);
-      return {
-        error: sessionError.message || 'Error creating session',
-        success: false,
-      };
-    }
-
-    const cookieStore = cookies();
-    cookieStore.set('sb-session', JSON.stringify(sessionData.session), {
-      path: '/',
-      httpOnly: true,
-      sameSite: 'strict',
-      secure: true,
-      maxAge: 60 * 60 * 24 * 7,
-    });
-
     return {
       ...parseStringify(dbData),
       success: true,
+      userId: authData.user.id,
     };
   } catch (error) {
     console.error('Unexpected sign up error:', error);
