@@ -86,6 +86,7 @@ const AuthForm = ({ type }: { type: string }) => {
         if (type === 'sign-in') {
           const res = await fetch('/api/auth/sign-in', {
             method: 'POST',
+            credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: data.email, password: data.password }),
           });
