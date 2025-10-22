@@ -104,15 +104,17 @@ export const signUp = async ({ password, ...userData }: SignUpParams) => {
       };
     }
 
-    const dwollaCustomerUrl = await createDwollaCustomer({
-      ...userData,
-      type: 'personal',
-    });
-
-    if (!dwollaCustomerUrl) {
-      console.error('No Dwolla customer URL returned');
+    let dwollaCustomerUrl: string;
+    try {
+      dwollaCustomerUrl = await createDwollaCustomer({
+        ...userData,
+        type: 'personal',
+      });
+    } catch (dwollaError) {
+      const errorMessage = dwollaError instanceof Error ? dwollaError.message : 'Unknown Dwolla error';
+      console.error('Dwolla customer creation error:', errorMessage);
       return {
-        error: 'Error creating Dwolla customer',
+        error: errorMessage,
         success: false,
       };
     }
