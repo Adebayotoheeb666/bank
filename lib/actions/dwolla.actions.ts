@@ -154,8 +154,17 @@ export const addFundingSource = async ({
       plaidToken: processorToken,
       _links: dwollaAuthLinks,
     };
-    return await createFundingSource(fundingSourceOptions);
+
+    const fundingSourceUrl = await createFundingSource(fundingSourceOptions);
+    return fundingSourceUrl;
   } catch (err) {
-    console.error("Transfer fund failed: ", err);
+    const errorMessage = err instanceof Error ? err.message : JSON.stringify(err);
+    console.error("Adding funding source failed:", {
+      error: errorMessage,
+      dwollaCustomerId,
+      bankName,
+      timestamp: new Date().toISOString(),
+    });
+    throw new Error(`Failed to add funding source: ${errorMessage}`);
   }
 };
