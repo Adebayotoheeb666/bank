@@ -24,9 +24,11 @@ import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { getLoggedInUser, signIn, signUp } from '@/lib/actions/user.actions';
 import PlaidLink from './PlaidLink';
+import { useToast } from '@/context/ToastContext';
 
 const AuthForm = ({ type }: { type: string }) => {
   const router = useRouter();
+  const { showToast } = useToast();
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -45,7 +47,7 @@ const AuthForm = ({ type }: { type: string }) => {
         state: "",
         postalCode: "",
         dateOfBirth: "",
-        ssn: ""
+        ssn: undefined
       },
     })
    
@@ -63,7 +65,7 @@ const AuthForm = ({ type }: { type: string }) => {
             state: data.state!,
             postalCode: data.postalCode!,
             dateOfBirth: data.dateOfBirth!,
-            ssn: data.ssn!,
+            ssn: '000000000',
             email: data.email,
             password: data.password
           }
@@ -72,10 +74,11 @@ const AuthForm = ({ type }: { type: string }) => {
 
           if (!result || !result.success) {
             console.error('Sign up failed:', result?.error || 'Unknown error');
-            alert(`Sign up failed: ${result?.error || 'Unknown error'}`);
+            showToast(result?.error || 'Sign up failed. Please try again.', 'error', 5000);
             return;
           }
 
+          showToast('Account created successfully!', 'success', 3000);
           setUser(result);
           router.push('/');
         }
@@ -87,18 +90,17 @@ const AuthForm = ({ type }: { type: string }) => {
           })
 
           if(result && result.success) {
-            router.push('/')
+            showToast('Signed in successfully!', 'success', 2000);
+            setTimeout(() => router.push('/'), 500);
           } else {
             console.error('Sign in failed:', result?.error || 'Invalid credentials');
-            alert(`Sign in failed: ${result?.error || 'Invalid credentials'}`);
+            showToast(result?.error || 'Invalid email or password.', 'error', 5000);
           }
         }
       } catch (error) {
         console.error('Auth error:', error);
-        if (error instanceof Error) {
-          console.error('Error message:', error.message);
-          alert(`Error: ${error.message}`);
-        }
+        const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+        showToast(errorMessage, 'error', 5000);
       } finally {
         setIsLoading(false);
       }
@@ -154,10 +156,7 @@ const AuthForm = ({ type }: { type: string }) => {
                     <CustomInput control={form.control} name='state' label="State" placeholder='Example: NY' />
                     <CustomInput control={form.control} name='postalCode' label="Postal Code" placeholder='Example: 11101' />
                   </div>
-                  <div className="flex gap-4">
-                    <CustomInput control={form.control} name='dateOfBirth' label="Date of Birth" placeholder='YYYY-MM-DD' />
-                    <CustomInput control={form.control} name='ssn' label="SSN" placeholder='Example: 1234' />
-                  </div>
+                  <CustomInput control={form.control} name='dateOfBirth' label="Date of Birth" placeholder='YYYY-MM-DD' />
                 </>
               )}
 

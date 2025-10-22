@@ -32,23 +32,20 @@ export const createFundingSource = async (
       .post(`customers/${options.customerId}/funding-sources`, {
         name: options.fundingSourceName,
         plaidToken: options.plaidToken,
-      });
+      })
+      .then((res) => res.headers.get("location"));
+  } catch (err: any) {
+    console.error("Creating a Funding Source Failed: ", err);
 
-    const fundingSourceUrl = response.headers.get("location");
-
-    if (!fundingSourceUrl) {
-      throw new Error("Dwolla did not return a funding source URL");
+    if (err?.body?.message) {
+      throw new Error(err.body.message);
     }
 
-    return fundingSourceUrl;
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : JSON.stringify(err);
-    console.error("Creating a Funding Source Failed:", {
-      error: errorMessage,
-      customerId: options.customerId,
-      timestamp: new Date().toISOString(),
-    });
-    throw new Error(`Funding source creation failed: ${errorMessage}`);
+    if (err?.body?._embedded?.errors?.[0]?.message) {
+      throw new Error(err.body._embedded.errors[0].message);
+    }
+
+    throw new Error("Failed to create funding source. Please try again.");
   }
 };
 
@@ -107,33 +104,27 @@ export const createDwollaCustomer = async (
   newCustomer: NewDwollaCustomerParams
 ) => {
   try {
-    // Check if customer already exists
-    const existingCustomerUrl = await findDwollaCustomerByEmail(newCustomer.email);
+    return await dwollaClient
+      .post("customers", newCustomer)
+      .then((res) => res.headers.get("location"));
+  } catch (err: any) {
+    console.error("Creating a Dwolla Customer Failed: ", err);
 
-    if (existingCustomerUrl) {
-      console.log(`Reusing existing Dwolla customer for ${newCustomer.email}`);
-      return existingCustomerUrl;
+    if (err?.body?._embedded?.errors && Array.isArray(err.body._embedded.errors)) {
+      const errorMessages = err.body._embedded.errors
+        .map((e: any) => {
+          const field = e.path?.replace('/', '') || 'Unknown field';
+          return `${field}: ${e.message}`;
+        })
+        .join(', ');
+      throw new Error(`Validation error: ${errorMessages}`);
     }
 
-    // Create new customer if doesn't exist
-    const response = await dwollaClient.post("customers", newCustomer);
-    const customerUrl = response.headers.get("location");
-
-    if (!customerUrl) {
-      console.error("No location header returned from Dwolla customer creation");
-      throw new Error("Dwolla did not return a customer URL");
+    if (err?.body?.message) {
+      throw new Error(err.body.message);
     }
 
-    console.log(`Created new Dwolla customer for ${newCustomer.email}: ${customerUrl}`);
-    return customerUrl;
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : JSON.stringify(err);
-    console.error("Creating a Dwolla Customer Failed:", {
-      error: errorMessage,
-      customerData: newCustomer,
-      timestamp: new Date().toISOString(),
-    });
-    throw new Error(`Dwolla customer creation failed: ${errorMessage}`);
+    throw new Error("Failed to create Dwolla customer. Please check your information and try again.");
   }
 };
 
@@ -157,23 +148,21 @@ export const createTransfer = async ({
         value: amount,
       },
     };
+    return await dwollaClient
+      .post("transfers", requestBody)
+      .then((res) => res.headers.get("location"));
+  } catch (err: any) {
+    console.error("Transfer fund failed: ", err);
 
-    const response = await dwollaClient.post("transfers", requestBody);
-    const transferUrl = response.headers.get("location");
-
-    if (!transferUrl) {
-      throw new Error("Dwolla did not return a transfer URL");
+    if (err?.body?.message) {
+      throw new Error(err.body.message);
     }
 
-    return transferUrl;
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : JSON.stringify(err);
-    console.error("Transfer fund failed:", {
-      error: errorMessage,
-      amount,
-      timestamp: new Date().toISOString(),
-    });
-    throw new Error(`Transfer failed: ${errorMessage}`);
+    if (err?.body?._embedded?.errors?.[0]?.message) {
+      throw new Error(err.body._embedded.errors[0].message);
+    }
+
+    throw new Error("Transfer failed. Please try again.");
   }
 };
 
@@ -193,17 +182,16 @@ export const addFundingSource = async ({
       plaidToken: processorToken,
       _links: dwollaAuthLinks,
     };
+    return await createFundingSource(fundingSourceOptions);
+  } catch (err: any) {
+    console.error("Adding funding source failed: ", err);
 
-    const fundingSourceUrl = await createFundingSource(fundingSourceOptions);
-    return fundingSourceUrl;
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : JSON.stringify(err);
-    console.error("Adding funding source failed:", {
-      error: errorMessage,
-      dwollaCustomerId,
-      bankName,
-      timestamp: new Date().toISOString(),
-    });
-    throw new Error(`Failed to add funding source: ${errorMessage}`);
+    if (err?.message) {
+      throw new Error(err.message);
+    }
+
+    throw new Error("Failed to add funding source. Please try again.");
   }
 };
+
+
