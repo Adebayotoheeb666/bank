@@ -55,11 +55,23 @@ export const createDwollaCustomer = async (
   newCustomer: NewDwollaCustomerParams
 ) => {
   try {
-    return await dwollaClient
-      .post("customers", newCustomer)
-      .then((res) => res.headers.get("location"));
+    const response = await dwollaClient.post("customers", newCustomer);
+    const customerUrl = response.headers.get("location");
+
+    if (!customerUrl) {
+      console.error("No location header returned from Dwolla customer creation");
+      throw new Error("Dwolla did not return a customer URL");
+    }
+
+    return customerUrl;
   } catch (err) {
-    console.error("Creating a Dwolla Customer Failed: ", err);
+    const errorMessage = err instanceof Error ? err.message : JSON.stringify(err);
+    console.error("Creating a Dwolla Customer Failed:", {
+      error: errorMessage,
+      customerData: newCustomer,
+      timestamp: new Date().toISOString(),
+    });
+    throw new Error(`Dwolla customer creation failed: ${errorMessage}`);
   }
 };
 
