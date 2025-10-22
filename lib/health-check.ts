@@ -34,6 +34,9 @@ export interface HealthCheckResult {
 async function checkDatabase(): Promise<HealthCheckResult['database']> {
   const startTime = Date.now();
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
     const client = await createAdminClient();
 
     const { data, error } = await client
@@ -41,6 +44,7 @@ async function checkDatabase(): Promise<HealthCheckResult['database']> {
       .select('id')
       .limit(1);
 
+    clearTimeout(timeoutId);
     const responseTime = Date.now() - startTime;
 
     if (error) {
@@ -59,6 +63,14 @@ async function checkDatabase(): Promise<HealthCheckResult['database']> {
     };
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
+    if (error.name === 'AbortError') {
+      return {
+        connected: false,
+        status: 'TIMEOUT',
+        error: 'Request timed out after 5 seconds',
+        responseTime,
+      };
+    }
     return {
       connected: false,
       status: 'ERROR',
@@ -250,7 +262,7 @@ export async function formatHealthCheckOutput(result: HealthCheckResult): Promis
     `│ Response Time: ${result.database.responseTime}ms`,
     result.database.error ? `│ Error: ${result.database.error}` : '',
     '└───────────────────────────────────────────────────────────┘',
-    '\n┌─ PLAID ───────────────────────────────────────────────────┐',
+    '\n┌─ PLAID ──────────────────���────────────────────────────────┐',
     `│ Status: ${result.plaid.connected ? '✅ CONNECTED' : '❌ DISCONNECTED'}`,
     `│ Details: ${result.plaid.status}`,
     `│ Response Time: ${result.plaid.responseTime}ms`,
