@@ -118,11 +118,23 @@ export const createTransfer = async ({
         value: amount,
       },
     };
-    return await dwollaClient
-      .post("transfers", requestBody)
-      .then((res) => res.headers.get("location"));
+
+    const response = await dwollaClient.post("transfers", requestBody);
+    const transferUrl = response.headers.get("location");
+
+    if (!transferUrl) {
+      throw new Error("Dwolla did not return a transfer URL");
+    }
+
+    return transferUrl;
   } catch (err) {
-    console.error("Transfer fund failed: ", err);
+    const errorMessage = err instanceof Error ? err.message : JSON.stringify(err);
+    console.error("Transfer fund failed:", {
+      error: errorMessage,
+      amount,
+      timestamp: new Date().toISOString(),
+    });
+    throw new Error(`Transfer failed: ${errorMessage}`);
   }
 };
 
