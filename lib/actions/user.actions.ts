@@ -39,14 +39,6 @@ export const signIn = async ({ email, password }: signInProps) => {
       };
     }
 
-    // Check if email is confirmed
-    if (!data.user.email_confirmed_at) {
-      console.warn('User attempted to sign in with unconfirmed email:', email);
-      return {
-        error: 'Please confirm your email before signing in. Check your inbox for a confirmation link.',
-        success: false,
-      };
-    }
 
     const cookieStore = cookies();
     cookieStore.set('sb-session', JSON.stringify(data.session), {
