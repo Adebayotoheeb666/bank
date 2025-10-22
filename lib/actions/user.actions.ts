@@ -36,24 +36,57 @@ export const signIn = async ({ email, password }: signInProps) => {
 
       if (error.message?.includes('Email not confirmed')) {
         try {
-          await client.auth.admin.updateUserById(
-            (await client.auth.admin.listUsers()).data.users.find(u => u.email === email)?.id || '',
+          const { data: users, error: listError } = await client.auth.admin.listUsers();
+
+          if (listError || !users) {
+            return {
+              error: error.message || 'Invalid email or password',
+              success: false,
+            };
+          }
+
+          const user = users.users.find(u => u.email === email);
+          if (!user) {
+            return {
+              error: error.message || 'Invalid email or password',
+              success: false,
+            };
+          }
+
+          const { error: updateError } = await client.auth.admin.updateUserById(
+            user.id,
             { email_confirm: true }
           );
-          const retryResult = await client.auth.signInWithPassword({
+
+          if (updateError) {
+            console.error('Error confirming email:', updateError);
+            return {
+              error: error.message || 'Invalid email or password',
+              success: false,
+            };
+          }
+
+          const { data: retryData, error: retryError } = await client.auth.signInWithPassword({
             email,
             password,
           });
 
-          if (retryResult.error) {
+          if (retryError) {
             return {
-              error: retryResult.error.message || 'Invalid email or password',
+              error: retryError.message || 'Invalid email or password',
+              success: false,
+            };
+          }
+
+          if (!retryData.session) {
+            return {
+              error: 'Failed to create session',
               success: false,
             };
           }
 
           const cookieStore = cookies();
-          cookieStore.set('sb-session', JSON.stringify(retryResult.data.session), {
+          cookieStore.set('sb-session', JSON.stringify(retryData.session), {
             path: '/',
             httpOnly: true,
             sameSite: 'strict',
@@ -61,16 +94,16 @@ export const signIn = async ({ email, password }: signInProps) => {
             maxAge: 60 * 60 * 24 * 7,
           });
 
-          const user = await getUserInfo({ userId: retryResult.data.user.id });
+          const userInfo = await getUserInfo({ userId: retryData.user.id });
 
           return {
-            ...parseStringify(user),
+            ...parseStringify(userInfo),
             success: true,
           };
         } catch (confirmError) {
           console.error('Error confirming email:', confirmError);
           return {
-            error: 'Failed to confirm email. Please try again.',
+            error: error.message || 'Invalid email or password',
             success: false,
           };
         }
