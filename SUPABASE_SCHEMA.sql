@@ -331,15 +331,3 @@ SELECT
 FROM transactions t
 LEFT JOIN banks sb ON t.sender_bank_id = sb.id
 LEFT JOIN banks rb ON t.receiver_bank_id = rb.id;
-
--- ============================================================================
--- NOTES:
--- ============================================================================
--- 1. Run this entire script in Supabase SQL Editor (Database > SQL)
--- 2. Ensure auth.users table exists (automatic in Supabase)
--- 3. Update RLS policies based on your authentication strategy
--- 4. Consider enabling backup and point-in-time recovery in Supabase settings
--- 5. Monitor performance with Supabase built-in monitoring tools
--- 6. Keep access tokens (from Plaid) encrypted in production
--- 7. Use Supabase Secrets for sensitive configuration values
--- ============================================================================
