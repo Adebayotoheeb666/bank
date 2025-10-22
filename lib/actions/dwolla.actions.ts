@@ -34,8 +34,18 @@ export const createFundingSource = async (
         plaidToken: options.plaidToken,
       })
       .then((res) => res.headers.get("location"));
-  } catch (err) {
+  } catch (err: any) {
     console.error("Creating a Funding Source Failed: ", err);
+
+    if (err?.body?.message) {
+      throw new Error(err.body.message);
+    }
+
+    if (err?.body?._embedded?.errors?.[0]?.message) {
+      throw new Error(err.body._embedded.errors[0].message);
+    }
+
+    throw new Error("Failed to create funding source. Please try again.");
   }
 };
 
@@ -58,8 +68,18 @@ export const createDwollaCustomer = async (
     return await dwollaClient
       .post("customers", newCustomer)
       .then((res) => res.headers.get("location"));
-  } catch (err) {
+  } catch (err: any) {
     console.error("Creating a Dwolla Customer Failed: ", err);
+
+    if (err?.body?.message) {
+      throw new Error(err.body.message);
+    }
+
+    if (err?.body?._embedded?.errors?.[0]?.message) {
+      throw new Error(err.body._embedded.errors[0].message);
+    }
+
+    throw new Error("Failed to create Dwolla customer. Please check your information and try again.");
   }
 };
 
@@ -86,8 +106,18 @@ export const createTransfer = async ({
     return await dwollaClient
       .post("transfers", requestBody)
       .then((res) => res.headers.get("location"));
-  } catch (err) {
+  } catch (err: any) {
     console.error("Transfer fund failed: ", err);
+
+    if (err?.body?.message) {
+      throw new Error(err.body.message);
+    }
+
+    if (err?.body?._embedded?.errors?.[0]?.message) {
+      throw new Error(err.body._embedded.errors[0].message);
+    }
+
+    throw new Error("Transfer failed. Please try again.");
   }
 };
 
@@ -108,7 +138,13 @@ export const addFundingSource = async ({
       _links: dwollaAuthLinks,
     };
     return await createFundingSource(fundingSourceOptions);
-  } catch (err) {
-    console.error("Transfer fund failed: ", err);
+  } catch (err: any) {
+    console.error("Adding funding source failed: ", err);
+
+    if (err?.message) {
+      throw new Error(err.message);
+    }
+
+    throw new Error("Failed to add funding source. Please try again.");
   }
 };
