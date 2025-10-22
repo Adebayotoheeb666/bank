@@ -78,7 +78,8 @@ const AuthForm = ({ type }: { type: string }) => {
             return;
           }
 
-          setUser(result);
+          setConfirmationPending(true);
+          setConfirmationEmail(data.email);
         }
 
         if(type === 'sign-in') {
