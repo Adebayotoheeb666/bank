@@ -33,6 +33,49 @@ export const signIn = async ({ email, password }: signInProps) => {
 
     if (error) {
       console.error('Sign in error:', error.message);
+
+      if (error.message?.includes('Email not confirmed')) {
+        try {
+          await client.auth.admin.updateUserById(
+            (await client.auth.admin.listUsers()).data.users.find(u => u.email === email)?.id || '',
+            { email_confirm: true }
+          );
+          const retryResult = await client.auth.signInWithPassword({
+            email,
+            password,
+          });
+
+          if (retryResult.error) {
+            return {
+              error: retryResult.error.message || 'Invalid email or password',
+              success: false,
+            };
+          }
+
+          const cookieStore = cookies();
+          cookieStore.set('sb-session', JSON.stringify(retryResult.data.session), {
+            path: '/',
+            httpOnly: true,
+            sameSite: 'strict',
+            secure: true,
+            maxAge: 60 * 60 * 24 * 7,
+          });
+
+          const user = await getUserInfo({ userId: retryResult.data.user.id });
+
+          return {
+            ...parseStringify(user),
+            success: true,
+          };
+        } catch (confirmError) {
+          console.error('Error confirming email:', confirmError);
+          return {
+            error: 'Failed to confirm email. Please try again.',
+            success: false,
+          };
+        }
+      }
+
       return {
         error: error.message || 'Invalid email or password',
         success: false,
