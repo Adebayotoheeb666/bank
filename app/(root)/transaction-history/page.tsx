@@ -9,14 +9,19 @@ import React from 'react'
 const TransactionHistory = async ({ searchParams: { id, page }}:SearchParamProps) => {
   const currentPage = Number(page as string) || 1;
   const loggedIn = await getLoggedInUser();
-  const accounts = await getAccounts({ 
-    userId: loggedIn.$id 
+
+  if (!loggedIn) {
+    redirect('/sign-in');
+  }
+
+  const accounts = await getAccounts({
+    userId: loggedIn.$id
   })
 
-  if(!accounts) return;
-  
-  const accountsData = accounts?.data;
-  const appwriteItemId = (id as string) || accountsData[0]?.appwriteItemId;
+  if(!accounts) return <div className="flex-center">No accounts found.</div>;
+
+  const accountsData = accounts?.data || [];
+  const appwriteItemId = (id as string) || accountsData[0]?.appwriteItemId || '';
 
   const account = await getAccount({ appwriteItemId })
 
