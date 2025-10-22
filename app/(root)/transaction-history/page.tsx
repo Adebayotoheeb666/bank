@@ -29,12 +29,12 @@ const TransactionHistory = async ({ searchParams: { id, page }}:SearchParamProps
 
 
 const rowsPerPage = 10;
-const totalPages = Math.ceil(account?.transactions.length / rowsPerPage);
+const totalPages = Math.ceil((account?.transactions?.length || 0) / rowsPerPage);
 
 const indexOfLastTransaction = currentPage * rowsPerPage;
 const indexOfFirstTransaction = indexOfLastTransaction - rowsPerPage;
 
-const currentTransactions = account?.transactions.slice(
+const currentTransactions = (account?.transactions || []).slice(
   indexOfFirstTransaction, indexOfLastTransaction
 )
   return (
