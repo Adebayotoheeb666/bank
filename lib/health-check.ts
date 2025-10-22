@@ -1,8 +1,6 @@
 'use server';
 
 import { createAdminClient } from './supabase';
-import { plaidClient } from './plaid';
-import { Client } from 'dwolla-v2';
 
 export interface HealthCheckResult {
   timestamp: string;
@@ -38,7 +36,6 @@ async function checkDatabase(): Promise<HealthCheckResult['database']> {
   try {
     const client = await createAdminClient();
 
-    // Simple ping query to verify connection - just select one row
     const { data, error } = await client
       .from('users')
       .select('id')
@@ -72,58 +69,60 @@ async function checkDatabase(): Promise<HealthCheckResult['database']> {
 }
 
 /**
- * Check Plaid API connection
+ * Check Plaid API connection using fetch with timeout
  */
 async function checkPlaid(): Promise<HealthCheckResult['plaid']> {
   const startTime = Date.now();
   try {
-    // Plaid doesn't have a dedicated health endpoint, so we'll test with a metadata request
-    // Using institutions endpoint which is lightweight and doesn't require authentication
-    const response = await plaidClient.institutionsGetById({
-      institution_id: 'ins_1',
-      country_codes: ['US'],
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    const response = await fetch('https://sandbox.plaid.com/institutions/search', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'PLAID-CLIENT-ID': process.env.PLAID_CLIENT_ID || '',
+        'PLAID-SECRET': process.env.PLAID_SECRET || '',
+      },
+      body: JSON.stringify({
+        query: 'Chase',
+        products: ['auth'],
+      }),
+      signal: controller.signal,
     });
 
+    clearTimeout(timeoutId);
     const responseTime = Date.now() - startTime;
 
-    // If we get here without an error, Plaid is responsive
-    if (response?.data?.institution) {
+    if (response.ok) {
       return {
         connected: true,
         status: 'CONNECTED',
         responseTime,
       };
-    } else {
+    } else if (response.status === 401 || response.status === 400) {
       return {
         connected: true,
-        status: 'CONNECTED',
+        status: 'CONNECTED (Invalid Credentials)',
+        error: `HTTP ${response.status}`,
+        responseTime,
+      };
+    } else {
+      return {
+        connected: false,
+        status: 'ERROR',
+        error: `HTTP ${response.status}`,
         responseTime,
       };
     }
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
 
-    // Handle Plaid-specific errors
-    const errorMessage = error?.response?.data?.error_message || 
-                        error?.message || 
-                        'Unknown Plaid error';
-
-    // Distinguish between connection errors and invalid request errors
-    if (error?.code === 'ECONNREFUSED' || error?.code === 'ETIMEDOUT') {
+    if (error.name === 'AbortError') {
       return {
         connected: false,
-        status: 'DISCONNECTED',
-        error: `Connection refused: ${errorMessage}`,
-        responseTime,
-      };
-    }
-
-    // A 401 or 400 from Plaid usually means credentials are wrong but API is reachable
-    if (error?.response?.status === 401 || error?.response?.status === 400) {
-      return {
-        connected: true,
-        status: 'CONNECTED (Invalid Credentials)',
-        error: errorMessage,
+        status: 'TIMEOUT',
+        error: 'Request timed out after 5 seconds',
         responseTime,
       };
     }
@@ -131,7 +130,7 @@ async function checkPlaid(): Promise<HealthCheckResult['plaid']> {
     return {
       connected: false,
       status: 'ERROR',
-      error: errorMessage,
+      error: error?.message || 'Unknown Plaid error',
       responseTime,
     };
   }
@@ -143,53 +142,49 @@ async function checkPlaid(): Promise<HealthCheckResult['plaid']> {
 async function checkDwolla(): Promise<HealthCheckResult['dwolla']> {
   const startTime = Date.now();
   try {
-    const environment = process.env.DWOLLA_ENV as 'production' | 'sandbox' || 'sandbox';
-    
-    const dwollaClient = new Client({
-      environment: environment,
-      key: process.env.DWOLLA_KEY as string,
-      secret: process.env.DWOLLA_SECRET as string,
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    const response = await fetch(process.env.DWOLLA_BASE_URL + '/', {
+      headers: {
+        'Accept': 'application/vnd.dwolla.v1.hal+json',
+        'Authorization': `Bearer ${process.env.DWOLLA_KEY}`,
+      },
+      signal: controller.signal,
     });
 
-    // Test with a simple API call to get root resource
-    // This doesn't require authentication but verifies connectivity
-    const response = await dwollaClient.get('/');
-
+    clearTimeout(timeoutId);
     const responseTime = Date.now() - startTime;
 
-    if (response?.status === 200) {
+    if (response.ok) {
       return {
         connected: true,
         status: 'CONNECTED',
         responseTime,
       };
-    } else {
+    } else if (response.status === 401 || response.status === 403) {
       return {
         connected: true,
-        status: 'CONNECTED',
+        status: 'CONNECTED (Invalid Credentials)',
+        error: `HTTP ${response.status}`,
+        responseTime,
+      };
+    } else {
+      return {
+        connected: false,
+        status: 'ERROR',
+        error: `HTTP ${response.status}`,
         responseTime,
       };
     }
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
-    const errorMessage = error?.message || 'Unknown Dwolla error';
 
-    // Check for connection errors
-    if (error?.code === 'ECONNREFUSED' || error?.code === 'ETIMEDOUT') {
+    if (error.name === 'AbortError') {
       return {
         connected: false,
-        status: 'DISCONNECTED',
-        error: `Connection refused: ${errorMessage}`,
-        responseTime,
-      };
-    }
-
-    // Dwolla authentication errors mean API is reachable
-    if (error?.status === 401 || error?.status === 403) {
-      return {
-        connected: true,
-        status: 'CONNECTED (Invalid Credentials)',
-        error: errorMessage,
+        status: 'TIMEOUT',
+        error: 'Request timed out after 5 seconds',
         responseTime,
       };
     }
@@ -197,7 +192,7 @@ async function checkDwolla(): Promise<HealthCheckResult['dwolla']> {
     return {
       connected: false,
       status: 'ERROR',
-      error: errorMessage,
+      error: error?.message || 'Unknown Dwolla error',
       responseTime,
     };
   }
