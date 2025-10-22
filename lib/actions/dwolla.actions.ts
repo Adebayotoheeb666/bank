@@ -58,9 +58,19 @@ export const createOnDemandAuthorization = async () => {
       "on-demand-authorizations"
     );
     const authLink = onDemandAuthorization.body._links;
+
+    if (!authLink) {
+      throw new Error("Dwolla did not return authorization links");
+    }
+
     return authLink;
   } catch (err) {
-    console.error("Creating an On Demand Authorization Failed: ", err);
+    const errorMessage = err instanceof Error ? err.message : JSON.stringify(err);
+    console.error("Creating an On Demand Authorization Failed:", {
+      error: errorMessage,
+      timestamp: new Date().toISOString(),
+    });
+    throw new Error(`On-demand authorization failed: ${errorMessage}`);
   }
 };
 
