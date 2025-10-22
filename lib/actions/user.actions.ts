@@ -89,7 +89,7 @@ export const signIn = async ({ email, password }: signInProps) => {
           cookieStore.set('sb-session', JSON.stringify(retryData.session), {
             path: '/',
             httpOnly: true,
-            sameSite: 'strict',
+            sameSite: 'none',
             secure: true,
             maxAge: 60 * 60 * 24 * 7,
           });
@@ -120,7 +120,7 @@ export const signIn = async ({ email, password }: signInProps) => {
     cookieStore.set('sb-session', JSON.stringify(data.session), {
       path: '/',
       httpOnly: true,
-      sameSite: 'strict',
+      sameSite: 'none',
       secure: true,
       maxAge: 60 * 60 * 24 * 7,
     });
