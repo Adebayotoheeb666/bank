@@ -241,16 +241,21 @@ export const signUp = async ({ password, ...userData }: SignUpParams) => {
 
 export async function getLoggedInUser() {
   try {
-    const client = await createSessionClient();
-    const {
-      data: { user },
-      error,
-    } = await client.auth.getUser();
+    const cookieStore = cookies();
+    const raw = cookieStore.get('sb-session')?.value;
+    if (!raw) return null;
 
-    if (error) throw error;
-    if (!user) return null;
+    let session: any = null;
+    try {
+      session = JSON.parse(raw);
+    } catch {
+      return null;
+    }
 
-    const userInfo = await getUserInfo({ userId: user.id });
+    const userId = session?.user?.id;
+    if (!userId) return null;
+
+    const userInfo = await getUserInfo({ userId });
     return parseStringify(userInfo);
   } catch (error) {
     console.log(error);
